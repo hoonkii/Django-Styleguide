@@ -413,6 +413,8 @@ service 및 selector는 비즈니스 로직을 가지고 있습니다. 따라서
 2. 테스트는 데이터베이스를 바탕으로 이루어져야 합니다.
 3. 비동기 태스크의 호출 혹은 모든 외부 시스템과의 연동을 mocking하여 테스트 해야합니다.
 
+- 테스트는 주로 given-when-then (준비 - 실행 - 검증) 포맷으로 작성하면 좋습니다.
+
 ---
 
 ## APIs & Serializers
@@ -439,7 +441,7 @@ API를 개발할 때 다음과 같은 규칙을 따릅니다.
 
 - Serializer 는 API 클래스에 inner class로 정의되어야 하며, InputSerializer 혹은 OutputSerializer라는 이름을 활용하여 네이밍 되어야 합니다.
 - 모든 serializer는 가장 간단한 Serializer(from rest_framework.serializers import Serializer)를 활용하도록 합니다. (ModelSerializer X)
-- 대부분의 경우 Serializer의 재사용을 피합니다. -> 예상하지 못한 결과를 종종 야기하기 때문입니다.
+- 대부분의 경우 Serializer의 재사용을 피합니다. -> 예상하지 못한 결과를 종종 야기하기 때문입니다. 그러나 경우에 따라서 Nested Serializer 가 필요할 때도 있고 그 Nested된 serializer가 여러 곳에서 재사용 되어야 하는 경우도 존재합니다. 이럴 때는 serializers.py 파일에 정리하여 참조합니다.
 
 ### Naming Convention
 
@@ -447,7 +449,7 @@ API를 작성할 때 다음과 같은 Naming Convetion을 따릅니다. `<Entity
 
 ### Class 기반 vs Function 기반
 
-되도록이면 Class 기반으로 작성하도록 합니다.
+되도록이면 Class 기반으로 작성하도록 합니다. 그 이유는 상속받은 View에서 많은 기능들을 제공하기 때문입니다. Django를 사용하는 이유 중 하나가 생산성이기 때문에 최대한 프레임워크 & 라이브러리에서 제공하는 것을 활용하도록 합니다.
 
 API 작성의 간단한 예시는 다음과 같습니다.
 
@@ -534,3 +536,15 @@ class AVeryNeatServiceTests(TestCase):
 ```
 
 파일 안에는 위와 같이 클래스를 만들어 테스트 코드를 구성합니다.
+
+### Celery 활용
+
+사용자 Request에서 시간이 오래 걸리는 작업을 수행하면, API의 성능도 떨어지고 서버 전체의 처리량에 영향을 미칩니다.
+
+다음의 경우가 존재합니다.
+
+- 써드 파티 서비스와의 통신 (메일, 푸시 알림 보내기 등)
+- HTTP 사이클 밖에서 실행되어야 하는 무거운 계산 작업
+- 주기적으로 실행되어야 하는 Job (Celery beat)
+
+이런 경우 [Celery](https://docs.celeryq.dev/en/stable/) 를 적극적으로 활용하면 좋습니다.
